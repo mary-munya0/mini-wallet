@@ -40,3 +40,66 @@ Content-Type: application/json
     "recipientId": 1,
     "amount": 10
 }
+
+### 5. Successful Withdrawal
+POST {{baseUrl}}/withdraw
+Content-Type: application/json
+
+{
+    "walletId": 1,
+    "amount": 50
+}
+
+### 6. Withdrawal - Insufficient Funds
+POST {{baseUrl}}/withdraw
+Content-Type: application/json
+
+{
+    "walletId": 1,
+    "amount": 10000
+}
+
+### 7. Withdrawal - Negative Amount
+POST {{baseUrl}}/withdraw
+Content-Type: application/json
+
+{
+    "walletId": 1,
+    "amount": -10
+}
+
+### 8. Withdrawal - Wallet Not Found
+POST {{baseUrl}}/withdraw
+Content-Type: application/json
+
+{
+    "walletId": 999,
+    "amount": 10
+}
+
+### 9. Successful Deposit
+POST {{baseUrl}}/deposit
+Content-Type: application/json
+
+{
+    "walletId": 1,
+    "amount": 100
+}
+
+### 10. Edge Case: Negative Amount
+POST {{baseUrl}}/deposit
+Content-Type: application/json
+
+{
+    "walletId": 1,
+    "amount": -50
+}
+
+### 11. Edge Case: Wallet Not Found
+POST {{baseUrl}}/deposit
+Content-Type: application/json
+
+{
+    "walletId": 999,
+    "amount": 50
+}
