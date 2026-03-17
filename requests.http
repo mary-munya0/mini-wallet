@@ -1,0 +1,42 @@
+### Variables
+@baseUrl = http://localhost:3000/api
+
+### 1. Successful Transfer (Alice to Bob)
+POST {{baseUrl}}/transfer
+Content-Type: application/json
+
+{
+    "senderId": 1,
+    "recipientId": 2,
+    "amount": 100
+}
+
+### 2. Edge Case: Insufficient Funds
+POST {{baseUrl}}/transfer
+Content-Type: application/json
+
+{
+    "senderId": 1,
+    "recipientId": 2,
+    "amount": 5000
+}
+
+### 3. Edge Case: Negative Amount
+POST {{baseUrl}}/transfer
+Content-Type: application/json
+
+{
+    "senderId": 1,
+    "recipientId": 2,
+    "amount": -50
+}
+
+### 4. Edge Case: Same Wallet Transfer
+POST {{baseUrl}}/transfer
+Content-Type: application/json
+
+{
+    "senderId": 1,
+    "recipientId": 1,
+    "amount": 10
+}
