@@ -24,6 +24,14 @@ export const transferFunds = async (
   try {
     await client.query("BEGIN");
 
+    const [firstId, secondId] =
+      senderId < recipientId
+        ? [senderId, recipientId]
+        : [recipientId, senderId];
+
+    await getWalletWithLock(client, firstId);
+    await getWalletWithLock(client, secondId);
+
     const senderBalance = await getWalletWithLock(client, senderId);
 
     if (senderBalance < amount) {
@@ -56,13 +64,13 @@ async function getWalletWithLock(client: PoolClient, id: number) {
     [id],
   );
   if (res.rowCount === 0) {
-    throw new Error(`Wallet ${id} not found`);
+    throw new Error(`Sender wallet ${id} not found`);
   }
   return parseFloat(res.rows[0].balance);
 }
 
 async function updateBalance(client: PoolClient, id: number, amount: number) {
-  await client.query("UPDATE wallets SET balance = balance + $1 WHERE id=$2", [
+  await client.query("UPDATE wallets SET balance = balance + $1 WHERE id=$2 RETURNING balance", [
     amount,
     id,
   ]);
@@ -70,8 +78,8 @@ async function updateBalance(client: PoolClient, id: number, amount: number) {
 
 async function recordTransaction(
   client: PoolClient,
-  senderId: number,
-  recipientId: number,
+  senderId: number | null,
+  recipientId: number | null,
   amount: number,
   type: TransactionType = TransactionType.TRANSFER,
 ) {
@@ -80,3 +88,91 @@ async function recordTransaction(
     [senderId, recipientId, amount, type],
   );
 }
+
+export const depositFunds = async (
+  walletId: number,
+  amount: number
+) => {
+  if (amount <= 0) {
+    throw new Error("Amount must be greater than zero");
+  }
+
+  const client = await getClient();
+
+  try {
+    await client.query("BEGIN");
+
+    await getWalletWithLock(client, walletId);
+
+    const newBalance = await updateBalance(client, walletId, amount);
+
+    const txn = await recordTransaction(
+      client,
+      null, 
+      walletId,
+      amount,
+      TransactionType.DEPOSIT
+    );
+
+    await client.query("COMMIT");
+
+    return {
+      message: "Deposit successful",
+      transactionId: txn.rows[0].id,
+      walletId,
+      amount,
+      balance: newBalance,
+    };
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+export const withdrawFunds = async (
+  walletId: number,
+  amount: number
+) => {
+  if (amount <= 0) {
+    throw new Error("Amount must be greater than zero");
+  }
+
+  const client = await getClient();
+
+  try {
+    await client.query("BEGIN");
+
+    const balance = await getWalletWithLock(client, walletId);
+
+    if (balance < amount) {
+      throw new Error("Insufficient funds");
+    }
+
+    const newBalance = await updateBalance(client, walletId, -amount);
+
+    const txn = await recordTransaction(
+      client,
+      walletId,
+      null,
+      amount,
+      TransactionType.WITHDRAWAL
+    );
+
+    await client.query("COMMIT");
+
+    return {
+      message: "Withdrawal successful",
+      transactionId: txn.rows[0].id,
+      walletId,
+      amount,
+      balance: newBalance,
+    };
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+};

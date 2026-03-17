@@ -8,6 +8,13 @@ interface TransferBody {
   amount: number;
 }
 
+interface DepositAndWithdrawBody {
+  walletId: number;
+  amount: number;
+}
+interface DepositBody extends DepositAndWithdrawBody {}
+interface WithdrawBody extends DepositAndWithdrawBody {}
+
 export const handleTransfer = asyncHandler(async (
   req: Request<{}, {}, TransferBody>, 
   res: Response
@@ -23,5 +30,39 @@ export const handleTransfer = asyncHandler(async (
   res.status(200).json({ 
     success: true, 
     data: result 
+  });
+});
+
+export const handleDeposit = asyncHandler(async (
+  req: Request<{}, {}, DepositBody>,
+  res: Response
+) => {
+  const { walletId, amount } = req.body;
+
+  const result = await walletService.depositFunds(
+    Number(walletId),
+    Number(amount)
+  );
+
+  res.status(200).json({
+    success: true,
+    data: result,
+  });
+});
+
+export const handleWithdraw = asyncHandler(async (
+  req: Request<{}, {}, WithdrawBody>,
+  res: Response
+) => {
+  const { walletId, amount } = req.body;
+
+  const result = await walletService.withdrawFunds(
+    Number(walletId),
+    Number(amount)
+  );
+
+  res.status(200).json({
+    success: true,
+    data: result,
   });
 });
